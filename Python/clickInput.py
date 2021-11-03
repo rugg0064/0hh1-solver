@@ -1,6 +1,6 @@
 import pyautogui
 pyautogui.PAUSE = 0.005
-with open('result.txt') as f:
+with open('../result.txt') as f:
     lines = f.readlines()
     y = 0
     for line in lines:

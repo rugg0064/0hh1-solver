@@ -2,7 +2,7 @@ import pyautogui
 pyautogui.PAUSE = 0.00
 im = pyautogui.screenshot()
 
-with open('input.txt', 'w') as f:
+with open('../input.txt', 'w') as f:
     for y in range(0,12):
         for x in range(0,12):
             px = pyautogui.pixel( 680 + (50*x), 300 + (50*y) )
