@@ -7,6 +7,6 @@ RRBR-----BRB
 BRBB--------
 RBRRBRBBRRBB
 R----------B
-B----------R
+B-----R----R
 RBRRB------B
 BRBRR------B

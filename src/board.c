@@ -16,51 +16,65 @@ Board createBoard(uint8 size)
 	for(int i = 0; i < size; i++)
 	{
 		board.rowFirstBoard[i] = 0;
+		board.colFirstBoard[i] = 0;
 	}
 	return board;
 }
 
-void setValue(Board *boardPtr, uint8 x, uint8 y, uint8 value)
-{ //Value should be 2 bits, 0b11 for instance, significant bit being EXISTS bit, LSB being the value
-	uint64 row = boardPtr->rowFirstBoard[y];
-	row = uint64WithBit(row, 1, (x*2)    , value >> 1); //Sets exists bit to MSB
-	row = uint64WithBit(row, 1, (x*2) + 1, value & 1); //Sets value bit to LSB
-	boardPtr->rowFirstBoard[y] = row; //Update the actual row
-	
-	uint64 col = boardPtr->colFirstBoard[x];
-	col = uint64WithBit(col, 1, (y*2)    , value >> 1); //Sets exists bit to MSB
-	col = uint64WithBit(col, 1, (y*2) + 1, value & 1); //Sets value bit to LSB
-	boardPtr->colFirstBoard[x] = col; //Update the actual col
+void setFilled(Board *boardPtr, uint8 x, uint8 y, uint8 isFilled)
+{
+	boardPtr->rowFirstBoard[y] = uint64WithBit(boardPtr->rowFirstBoard[y], 1, x, isFilled);
+	boardPtr->colFirstBoard[x] = uint64WithBit(boardPtr->colFirstBoard[x], 1, y, isFilled);
 }
 
-uint8 isEmpty(Board *boardPtr, uint8 x, uint8 y)
+void setColor(Board *boardPtr, uint8 x, uint8 y, uint8 color)
+{
+	boardPtr->rowFirstBoard[y] = uint64WithBit(boardPtr->rowFirstBoard[y], 0, x, color);
+	boardPtr->colFirstBoard[x] = uint64WithBit(boardPtr->colFirstBoard[x], 0, y, color);	
+}
+
+uint8 isSlotEmpty(Board *boardPtr, uint8 x, uint8 y)
+{
+	return uint64GetBit(boardPtr->rowFirstBoard[y], 1, x);
+}
+
+uint8 getColor(Board *boardPtr, uint8 x, uint8 y)
 {
 	uint64 row = boardPtr->rowFirstBoard[y];
-	uint8 bitOffset = 63 - (x*2);
-	return getBit(row, 1, bitOffset);
+	return uint64GetBit(row, 0, x);
 }
 
-int isBoardFull(Board *boardPtr)
+uint8 isLineFull(Board *boardPtr, uint8 isCol, uint8 lineNum)
+{
+	//Since the uint64 for a line is {32xFilled}{32xColor}
+	//We can do a simple check to see if the top N bits are all 1
+	uint8 n = boardPtr->size;
+	uint64 line;
+	if(isCol)
+	{
+		line = boardPtr->colFirstBoard[lineNum];
+	}
+	else
+	{
+		line = boardPtr->colFirstBoard[lineNum];
+	}
+	uint64 mask = uint64max;
+	line >>= 64-n;
+	mask >>= 64-n;
+	return line==mask;
+}
+
+uint8 isBoardFull(Board *boardPtr)
 {
 	uint8 n = boardPtr->size;
-	int full = 1;
-	for(int x = 0; x < n; x++)
+	for(int i = 0; i < n; i++)
 	{
-		for(int y = 0; y < n; y++)
-		{	
-			full &= !isEmpty(boardPtr, x, y);
+		if(!isLineFull(boardPtr, 0, i))
+		{
+			return 0;
 		}
 	}
-	return full;
-}
-
-uint8 getValue(Board *boardPtr, uint8 x, uint8 y)
-{
-	Board board = *boardPtr;
-	uint64 row = board.rowFirstBoard[y];
-	int bitOffset = 62 - (x*2);
-	//The position of the bit we want is <bitCount> - 2 - (2x) left from the LSB
-	return (row & (((uint64)1) << bitOffset) ) >> bitOffset;
+	return 1;
 }
 
 uint8 getNumOfColorInRow(Board *boardPtr, uint8 y, uint8 type)
@@ -69,9 +83,9 @@ uint8 getNumOfColorInRow(Board *boardPtr, uint8 y, uint8 type)
 	int count = 0;
 	for(int x = 0; x < n; x++)
 	{
-		if(!isEmpty(boardPtr, x, y))
+		if(!isSlotEmpty(boardPtr, x, y))
 		{
-			count += getValue(boardPtr, x, y) == type;
+			count += getColor(boardPtr, x, y) == type;
 		}
 	}
 	return count;
@@ -82,14 +96,15 @@ uint8 getNumOfColorInCol(Board *boardPtr, uint8 x, uint8 type)
 	int count = 0;
 	for(int y = 0; y < n; y++)
 	{
-		if(!isEmpty(boardPtr, x, y))
+		if(!isSlotEmpty(boardPtr, x, y))
 		{
-			count += getValue(boardPtr, x, y) == type;
+			count += getColor(boardPtr, x, y) == type;
 		}
 	}
 	return count;
 }
 
+/*
 uint8 passN2Row(Board *boardPtr, int y)
 { //Checks for the rule "There must be the same number of red and blue tiles in any row"
 	//More accurately, this should say something like "The most amount of any color is n/2"
@@ -100,9 +115,9 @@ uint8 passN2Row(Board *boardPtr, int y)
 	uint8 blueCount = 0;
 	for(int i = 0; i < n; i++)
 	{	
-		if(!isEmpty(boardPtr, i, y))
+		if(!isSlotEmpty(boardPtr, i, y))
 		{
-			uint8 value = getValue(boardPtr, i, y);
+			uint8 value = getColor(boardPtr, i, y);
 			//Remember, a result of 0b00 is red. That means if you flip the LSB and add
 			//	That is 1 if and only if the result was red.
 			redCount  += value ^ 1;
@@ -123,9 +138,9 @@ uint8 passN2Col(Board *boardPtr, int x)
 	uint8 blueCount = 0;
 	for(int i = 0; i < n; i++)
 	{	
-		if(!isEmpty(boardPtr, x, i))
+		if(!isSlotEmpty(boardPtr, x, i))
 		{
-			uint8 value = getValue(boardPtr, x, i);
+			uint8 value = getColor(boardPtr, x, i);
 			//Remember, a result of 0b00 is red. That means if you flip the LSB and add
 			//	That is 1 if and only if the result was red.
 			redCount  += value ^ 1;
@@ -136,32 +151,6 @@ uint8 passN2Col(Board *boardPtr, int x)
 	return (redCount <= limit) && (blueCount <= limit);
 }
 
-uint8 passNoIdenticalRows(Board *boardPtr)
-{
-	uint8 n = boardPtr->size;
-	for(int y = 0; y < n; y++)
-	{
-		if(anyIdenticalRows(boardPtr, y))
-		{
-			return 0;
-		}
-	}
-	return 1;
-}
-
-uint8 passNoIdenticalCols(Board *boardPtr)
-{
-	uint8 n = boardPtr->size;
-	for(int x = 0; x < n; x++)
-	{
-		if(anyIdenticalCols(boardPtr, x))
-		{
-			return 0;
-		}
-	}
-	return 1;
-}
-
 uint8 passNoRunsOf3Row(Board *boardPtr, int y)
 {
 	uint8 n = boardPtr->size;
@@ -170,13 +159,13 @@ uint8 passNoRunsOf3Row(Board *boardPtr, int y)
 	
 	for(int x = 0; x < n; x++)
 	{
-		if(isEmpty(boardPtr, x, y))
+		if(isSlotEmpty(boardPtr, x, y))
 		{
 			currentRunLength = 0;
 		}
 		else
 		{
-			uint8 value = getValue(boardPtr, x, y);
+			uint8 value = getColor(boardPtr, x, y);
 			if(value != currentRunValue)
 			{
 				currentRunLength = 1;
@@ -203,13 +192,13 @@ uint8 passNoRunsOf3Col(Board *boardPtr, int x)
 	
 	for(int y = 0; y < n; y++)
 	{
-		if(isEmpty(boardPtr, x, y))
+		if(isSlotEmpty(boardPtr, x, y))
 		{
 			currentRunLength = 0;
 		}
 		else
 		{
-			uint8 value = getValue(boardPtr, x, y);
+			uint8 value = getColor(boardPtr, x, y);
 			if(value != currentRunValue)
 			{
 				currentRunLength = 1;
@@ -226,7 +215,7 @@ uint8 passNoRunsOf3Col(Board *boardPtr, int x)
 		}
 	}
 	return 1;
-}
+}*/
 
 void printBoard(Board *boardPtr)
 {
@@ -235,13 +224,13 @@ void printBoard(Board *boardPtr)
 	{
 		for(int x = 0; x < n; x++)
 		{
-			if(isEmpty(boardPtr, x, y))
+			if(isSlotEmpty(boardPtr, x, y))
 			{
 				printf("_");
 			}
 			else
 			{
-				if(getValue(boardPtr, x, y))
+				if(getColor(boardPtr, x, y))
 				{
 					printf("B");
 				}
@@ -250,94 +239,17 @@ void printBoard(Board *boardPtr)
 					printf("R");
 				}
 			}
+			
+			//printf("%u", uint64GetBit(boardPtr->rowFirstBoard[y], 1, x));
+			//printf("%u", isSlotEmpty(boardPtr, x, y));
 		}
 		printf("\n");
 	}
 }
 
-//Rule flags (there are 7)
-//do full check
-//identical rows
-//identical cols
-//n/2 of each row
-//runs of 3 row
-//n/2 of each col
-//runs of 3 col
-int isBoardValid(Board *boardPtr, uint8 flags)
-{
-	int n = boardPtr->size;
-	
-	if( (flags >> 6) & 1)
-	{
-		if(!isBoardFull(boardPtr))
-		{
-			//printf("Board is not full\n");
-			return 0;
-		}
-	}
-	
-	if( (flags >> 5) & 1)
-	{
-		if(!passNoIdenticalRows(boardPtr))
-		{
-			//printf("Some identical row\n");
-			return 0;
-		}
-	}
-	
-	if( (flags >> 4) & 1)
-	{
-		if(!passNoIdenticalCols(boardPtr))
-		{
-			//printf("Some identical col\n");
-			return 0;
-		}
-	}
-	
-	for(int x = 0; x < n; x++)
-	{
-		if( (flags >> 3) & 1)
-		{
-			if(!passN2Row(boardPtr, x))
-			{
-				//printf("n/2 rule on row\n");
-				return 0;
-			}
-		}
-		if( (flags >> 2) & 1)
-		{
-			if(!passNoRunsOf3Row(boardPtr, x))
-			{
-				//printf("run of 3 on row\n");
-				return 0;
-			}
-		}
-	}
-	
-	for(int y = 0; y < n; y++)
-	{
-		if( (flags >> 1) & 1)
-		{
-			if(!passN2Col(boardPtr, y))
-			{
-				//printf("n/2 rule on col\n");
-				return 0;
-			};
-		}
-		
-		if( (flags >> 0) & 1)
-		{
-			if(!passNoRunsOf3Col(boardPtr, y))
-			{
-				//printf("run of 3 on col\n");
-				return 0;
-			}
-		}
-	}
-	return 1;
-}
 
 
+/*
 uint8 anyIdenticalRows(Board *boardPtr, uint8 y)
 {
 	uint8 n = boardPtr->size;
@@ -350,13 +262,13 @@ uint8 anyIdenticalRows(Board *boardPtr, uint8 y)
 		int allSame = 1;
 		for(int x = 0; x < n && allSame; x++)
 		{
-			int y1Empty = isEmpty(boardPtr, x, y);
-			int y2Empty = isEmpty(boardPtr, x, y2);
+			int y1Empty = isSlotEmpty(boardPtr, x, y);
+			int y2Empty = isSlotEmpty(boardPtr, x, y2);
 			if(y1Empty || y2Empty)
 			{
 				allSame = 0;
 			}
-			if(getValue(boardPtr, x, y) != getValue(boardPtr, x, y2))
+			if(getColor(boardPtr, x, y) != getColor(boardPtr, x, y2))
 			{
 				allSame = 0;
 			}
@@ -368,6 +280,7 @@ uint8 anyIdenticalRows(Board *boardPtr, uint8 y)
 	}
 	return 0;
 }
+
 uint8 anyIdenticalCols(Board *boardPtr, uint8 x)
 {
 	uint8 n = boardPtr->size;
@@ -380,13 +293,13 @@ uint8 anyIdenticalCols(Board *boardPtr, uint8 x)
 		int allSame = 1;
 		for(int y = 0; y < n && allSame; y++)
 		{
-			int x1Empty = isEmpty(boardPtr, x, y);
-			int x2Empty = isEmpty(boardPtr, x2, y);
+			int x1Empty = isSlotEmpty(boardPtr, x, y);
+			int x2Empty = isSlotEmpty(boardPtr, x2, y);
 			if(x1Empty || x2Empty)
 			{
 				allSame = 0;
 			}
-			if(getValue(boardPtr, x, y) != getValue(boardPtr, x2, y))
+			if(getColor(boardPtr, x, y) != getColor(boardPtr, x2, y))
 			{
 				allSame = 0;
 			}
@@ -401,7 +314,7 @@ uint8 anyIdenticalCols(Board *boardPtr, uint8 x)
 
 uint8 canInsert(Board *boardPtr, uint8 x, uint8 y, uint8 type)
 {
-	int empty = isEmpty(boardPtr, x, y);
+	int empty = isSlotEmpty(boardPtr, x, y);
 	uint8 n = boardPtr->size;
 	uint8 typeCountCol = getNumOfColorInCol(boardPtr, x, type);
 	int n2ConstraintCol = typeCountCol < (n/2);
@@ -437,9 +350,9 @@ uint8 canInsert(Board *boardPtr, uint8 x, uint8 y, uint8 type)
 			}
 			continue;
 		}
-		if(!isEmpty(boardPtr, x1, y))
+		if(!isSlotEmpty(boardPtr, x1, y))
 		{
-			if(getValue(boardPtr, x1, y) == type)
+			if(getColor(boardPtr, x1, y) == type)
 			{
 				runCount++;
 				printf("%d\n", runCount);
@@ -482,9 +395,9 @@ uint8 canInsert(Board *boardPtr, uint8 x, uint8 y, uint8 type)
 			}
 			continue;
 		}
-		if(!isEmpty(boardPtr, x, y1))
+		if(!isSlotEmpty(boardPtr, x, y1))
 		{
-			if(getValue(boardPtr, x, y1) == type)
+			if(getColor(boardPtr, x, y1) == type)
 			{
 				runCount++;
 				if(runCount >= 3)
@@ -504,5 +417,4 @@ uint8 canInsert(Board *boardPtr, uint8 x, uint8 y, uint8 type)
 	}
 	return 1;
 }
-
-
+*/

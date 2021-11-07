@@ -33,9 +33,9 @@ Board solve(Board board)
 		for(int x = 0; x < n; x++)
 		{
 			Board newBoard = board; //Make a copy of the current board
-			if(isEmpty(&newBoard, x, y))
+			if(isSlotEmpty(&newBoard, x, y))
 			{
-				setValue(&newBoard, x, y, 0b10);
+				setColor(&newBoard, x, y, 0b10);
 				//if(canInsert(&newBoard, x, y, 0))
 				{
 					newBoard = solve(newBoard);
@@ -46,7 +46,7 @@ Board solve(Board board)
 				}
 				//if(canInsert(&newBoard, x, y, 1))
 				{
-					setValue(&newBoard, x, y, 0b11);
+					setColor(&newBoard, x, y, 0b11);
 					newBoard = solve(newBoard);
 					if(isBoardValid(&newBoard, 0b1111111))
 					{
@@ -71,14 +71,14 @@ int fixSandwiches(Board *boardPtr)
 	{
 		for(int x = 0; x < n-2; x++)
 		{
-			if(!isEmpty(boardPtr, x, y) && !isEmpty(boardPtr, x+2, y))
+			if(!isSlotEmpty(boardPtr, x, y) && !isSlotEmpty(boardPtr, x+2, y))
 			{
-				uint8 value = getValue(boardPtr, x, y);
-				if( value == getValue(boardPtr, x+2, y))
+				uint8 value = getColor(boardPtr, x, y);
+				if( value == getColor(boardPtr, x+2, y))
 				{
-					if(isEmpty(boardPtr, x+1, y))
+					if(isSlotEmpty(boardPtr, x+1, y))
 					{
-						setValue(boardPtr, x+1, y, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
+						setColor(boardPtr, x+1, y, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
 						changed = 1;
 					}
 				}
@@ -90,14 +90,14 @@ int fixSandwiches(Board *boardPtr)
 	{
 		for(int y = 0; y < n-2; y++)
 		{
-			if(!isEmpty(boardPtr, x, y) && !isEmpty(boardPtr, x, y+2))
+			if(!isSlotEmpty(boardPtr, x, y) && !isSlotEmpty(boardPtr, x, y+2))
 			{
-				uint8 value = getValue(boardPtr, x, y);
-				if(value == getValue(boardPtr, x, y+2))
+				uint8 value = getColor(boardPtr, x, y);
+				if(value == getColor(boardPtr, x, y+2))
 				{
-					if(isEmpty(boardPtr, x, y+1))
+					if(isSlotEmpty(boardPtr, x, y+1))
 					{
-						setValue(boardPtr, x, y+1, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
+						setColor(boardPtr, x, y+1, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
 						changed = 1;
 					}
 				}
@@ -116,24 +116,24 @@ int fixRunsOfTwo(Board *boardPtr)
 	{
 		for(int x = 0; x < n-1; x++)
 		{
-			if(!isEmpty(boardPtr, x, y) && !isEmpty(boardPtr, x+1, y))
+			if(!isSlotEmpty(boardPtr, x, y) && !isSlotEmpty(boardPtr, x+1, y))
 			{
-				uint8 value = getValue(boardPtr, x, y);
-				if(value == getValue(boardPtr, x+1, y))
+				uint8 value = getColor(boardPtr, x, y);
+				if(value == getColor(boardPtr, x+1, y))
 				{
 					if(x>=1)
 					{
-						if(isEmpty(boardPtr, x-1, y))
+						if(isSlotEmpty(boardPtr, x-1, y))
 						{
-							setValue(boardPtr, x-1, y, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
+							setColor(boardPtr, x-1, y, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
 							changed = 1;
 						}
 					}
 					if(x<=n-3)
 					{
-						if(isEmpty(boardPtr, x+2, y))
+						if(isSlotEmpty(boardPtr, x+2, y))
 						{
-							setValue(boardPtr, x+2, y, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
+							setColor(boardPtr, x+2, y, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
 							changed = 1;
 						}
 					}
@@ -146,24 +146,24 @@ int fixRunsOfTwo(Board *boardPtr)
 	{
 		for(int y = 0; y < n-1; y++)
 		{
-			if(!isEmpty(boardPtr, x, y) && !isEmpty(boardPtr, x, y+1))
+			if(!isSlotEmpty(boardPtr, x, y) && !isSlotEmpty(boardPtr, x, y+1))
 			{
-				uint8 value = getValue(boardPtr, x, y);
-				if(value == getValue(boardPtr, x, y+1))
+				uint8 value = getColor(boardPtr, x, y);
+				if(value == getColor(boardPtr, x, y+1))
 				{
 					if(y>=1)
 					{
-						if(isEmpty(boardPtr, x, y-1))
+						if(isSlotEmpty(boardPtr, x, y-1))
 						{
-							setValue(boardPtr, x, y-1, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
+							setColor(boardPtr, x, y-1, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
 							changed = 1;
 						}
 					}
 					if(y<=n-3)
 					{
-						if(isEmpty(boardPtr, x, y+2))
+						if(isSlotEmpty(boardPtr, x, y+2))
 						{
-							setValue(boardPtr, x, y+2, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
+							setColor(boardPtr, x, y+2, 0b10 + (value ^ 1)); //Set the value to 0b10 (not empty) and the opposite value.
 							changed = 1;
 						}
 					}
@@ -187,9 +187,9 @@ int fix2n(Board *boardPtr)
 		for(int x = 0; x < n; x++)
 		{
 			//Uses a similar trick from when we were constraint checking
-			if(!isEmpty(boardPtr, x, y))
+			if(!isSlotEmpty(boardPtr, x, y))
 			{
-				uint8 value = getValue(boardPtr, x, y);
+				uint8 value = getColor(boardPtr, x, y);
 				redCount  += value ^ 1;
 				blueCount += value;
 			}
@@ -199,9 +199,9 @@ int fix2n(Board *boardPtr)
 			uint8 valueToSet = redCount >= limit ? 1 : 0;
 			for(int x = 0; x < n; x++)
 			{
-				if(isEmpty(boardPtr, x, y))
+				if(isSlotEmpty(boardPtr, x, y))
 				{
-					setValue(boardPtr, x, y, 0b10 + valueToSet);
+					setColor(boardPtr, x, y, 0b10 + valueToSet);
 					changed = 1;
 				}
 			}
@@ -215,9 +215,9 @@ int fix2n(Board *boardPtr)
 		for(int y = 0; y < n; y++)
 		{
 			//Uses a similar trick from when we were constraint checking
-			if(!isEmpty(boardPtr, x, y))
+			if(!isSlotEmpty(boardPtr, x, y))
 			{
-				uint8 value = getValue(boardPtr, x, y);
+				uint8 value = getColor(boardPtr, x, y);
 				redCount  += value ^ 1;
 				blueCount += value;
 			}
@@ -227,9 +227,9 @@ int fix2n(Board *boardPtr)
 			uint8 valueToSet = redCount >= limit ? 1 : 0;
 			for(int y = 0; y < n; y++)
 			{
-				if(isEmpty(boardPtr, x, y))
+				if(isSlotEmpty(boardPtr, x, y))
 				{
-					setValue(boardPtr, x, y, 0b10 + valueToSet);
+					setColor(boardPtr, x, y, 0b10 + valueToSet);
 					changed = 1;
 				}
 			}

@@ -12,3 +12,4 @@ mainProgram: board.o constraints.o main.o solver.o uints.o
 testUint: uints.o ./tests/testUint.c
 	$(CC) -o a.out uints.o ./tests/testUint.c
 	./a.out
+

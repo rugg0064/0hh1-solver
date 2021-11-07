@@ -25,23 +25,27 @@ int main()
 		
 		for(int i = 0; i < size; i++)
 		{
-			uint8 value = 0;
+			uint8 filled = 0;
+			uint8 color = 0;
 			switch(line[i]) 
 			{
 				case 'R':
-					value = 0b10;
+					filled = 1;
+					color = 0;
 					break;
 				case 'B':
-					value = 0b11;
+					filled = 1;
+					color = 1;
 					break;
 			}
-			setValue(&b, i, lineNumber, value);
+			setFilled(&b, i, lineNumber, filled);
+			setColor(&b, i, lineNumber, color);
 		}
-		
 		lineNumber++;
 	}
 	fclose(filePointer);
 	printBoard(&b);
+	/*
 	printf("\n");
 	if(isBoardValid(&b, 0b0111111))
 	{
@@ -53,5 +57,6 @@ int main()
 	{
 		printf("Starting board was invalid");
 	}
+	*/
 	return 0;
 }
