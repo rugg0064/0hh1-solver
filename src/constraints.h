@@ -7,7 +7,8 @@ uint8 passRunOf3(Board *boardPtr, uint8 isCol, uint8 lineNum, uint8 start, uint8
 
 // A board is identical only if it is full
 uint8 isLineIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum1, uint8 lineNum2);
-uint8 passIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum);
+uint8 lineHasIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum);
+uint8 passIdentical(Board *boardPtr, uint8 isCol);
 
 uint8 isLineValid(Board *boardPtr, uint8 isCol, uint8 lineNum);
 //Checks an entire board for validity

@@ -1,12 +1,4 @@
-BRRBBRRBBRBR
-BBRBBRBRRBRR
-R-----------
-BB-------BRR
-R-----------
-RRBR-----BRB
-BRBB--------
-RBRRBRBBRRBB
-R----------B
-B-----R----R
-RBRRB------B
-BRBRR------B
+-B-B
+----
+----
+----

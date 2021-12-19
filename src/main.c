@@ -3,6 +3,7 @@
 #include "board.h"
 #include "uints.h"
 #include "solver.h"
+#include "constraints.h"
 
 int main()
 {
@@ -45,18 +46,18 @@ int main()
 	}
 	fclose(filePointer);
 	printBoard(&b);
-	/*
+	
 	printf("\n");
 	if(isBoardValid(&b, 0b0111111))
 	{
 		Board result = solve(b);
 		printBoard(&result);
-		printf("Is it valid: %d\n", isBoardValid(&result, 0b1111111));
+		printf("Is it valid: %u\n", isBoardValid(&result, (uint8)0b1111111));
 	}
 	else
 	{
 		printf("Starting board was invalid");
 	}
-	*/
+	
 	return 0;
 }

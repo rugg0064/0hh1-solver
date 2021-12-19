@@ -20,6 +20,19 @@ uint8 passN2(Board *boardPtr, uint8 isCol, uint8 lineNum)
 	return (redCount <= limit) && (blueCount <= limit);
 }
 
+uint8 passN2All(Board *boardPtr, uint8 isCol)
+{
+	uint8 n = boardPtr->size;
+	for(int i = 0; i < n; i++)
+	{
+		if(!passN2(boardPtr, isCol, i))
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
 uint8 passRunOf3(Board *boardPtr, uint8 isCol, uint8 lineNum, uint8 start, uint8 stop)
 { //stop index is incusive!!!
   //A result of 1 means we did pass the run of 3 test.
@@ -55,9 +68,22 @@ uint8 passRunOf3(Board *boardPtr, uint8 isCol, uint8 lineNum, uint8 start, uint8
 	return 1;
 }
 
+uint8 passRunOf3All(Board *boardPtr, uint8 isCol)
+{
+	uint8 n = boardPtr->size;
+	for(int i = 0; i < n; i++)
+	{
+		if(!passRunOf3(boardPtr, isCol, i, 0, n-1))
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
 uint8 isLineIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum1, uint8 lineNum2)
 {
-	if(!isLineFull(boardPtr, isCol, lineNum1) != !isLineFull(boardPtr, isCol, lineNum2))
+	if(!isLineFull(boardPtr, isCol, lineNum1) || !isLineFull(boardPtr, isCol, lineNum2))
 	{ //if line1 or line2 is isnt completely full, then we can't say its identical.
 		return 0;
 	}
@@ -77,26 +103,53 @@ uint8 isLineIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum1, uint8 lineNu
 	return line1==line2;
 }
 
-uint8 passIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum)
+uint8 lineHasIdentical(Board *boardPtr, uint8 isCol, uint8 lineNum)
 {
 	uint8 n = boardPtr->size;
 	for(int i = 0; i < n; i++)
 	{
-		if(i == n)
+		if(i == lineNum)
 		{
 			continue;
 		}
 		else
 		{
-			
+			if(isLineIdentical(boardPtr, isCol, lineNum, i))
+			{
+				return 0;
+			}
 		}
 	}
-	
+	return 1;
+}
+
+uint8 passIdentical(Board *boardPtr, uint8 isCol)
+{
+	uint8 n = boardPtr->size;
+	for(int i = 0; i < n-1; i++)
+	{
+		for(int j = i+1; j < n; j++)
+		{
+			if(isLineIdentical(boardPtr, isCol, i, j))
+			{
+				return 0;
+			}
+		}
+	}
+	return 1;
 }
 
 uint8 isLineValid(Board *boardPtr, uint8 isCol, uint8 lineNum)
 {
-	return 0;
+	uint8 n = boardPtr->size;
+	uint8 passRun = passRunOf3(boardPtr, isCol, lineNum, 0, n-1);
+	uint8 passIdentical = !lineHasIdentical(boardPtr, isCol, lineNum);
+	uint8 didPassN2 = passN2(boardPtr, isCol, lineNum);
+	if(!passRun || !passIdentical || !didPassN2)
+	{
+		return 0;
+	}
+	return 1;
 }
 
 //Rule flags (there are 7)
@@ -109,76 +162,21 @@ uint8 isLineValid(Board *boardPtr, uint8 isCol, uint8 lineNum)
 //runs of 3 col
 uint8 isBoardValid(Board *boardPtr, uint8 flags)
 {
-	/*
 	int n = boardPtr->size;
 	
-	if( (flags >> 6) & 1)
-	{
-		if(!isBoardFull(boardPtr))
-		{
-			//printf("Board is not full\n");
-			return 0;
-		}
-	}
+	//1 means it passed the result
+	uint8 results = 0;
+	results |= (passRunOf3All(boardPtr, 1) << 0);
+	results |= (passN2All(boardPtr, 1) << 1);
+	results |= (passRunOf3All(boardPtr, 0) << 2);
+	results |= (passN2All(boardPtr, 0) << 3);
+	results |= (passIdentical(boardPtr, 0) << 4);
+	results |= (passIdentical(boardPtr, 1) << 5);
+	results |= (isBoardFull(boardPtr) << 6);
 	
-	if( (flags >> 5) & 1)
-	{
-		if(!passNoIdenticalRows(boardPtr))
-		{
-			//printf("Some identical row\n");
-			return 0;
-		}
-	}
-	
-	if( (flags >> 4) & 1)
-	{
-		if(!passNoIdenticalCols(boardPtr))
-		{
-			//printf("Some identical col\n");
-			return 0;
-		}
-	}
-	
-	for(int x = 0; x < n; x++)
-	{
-		if( (flags >> 3) & 1)
-		{
-			if(!passN2Row(boardPtr, x))
-			{
-				//printf("n/2 rule on row\n");
-				return 0;
-			}
-		}
-		if( (flags >> 2) & 1)
-		{
-			if(!passNoRunsOf3Row(boardPtr, x))
-			{
-				//printf("run of 3 on row\n");
-				return 0;
-			}
-		}
-	}
-	
-	for(int y = 0; y < n; y++)
-	{
-		if( (flags >> 1) & 1)
-		{
-			if(!passN2Col(boardPtr, y))
-			{
-				//printf("n/2 rule on col\n");
-				return 0;
-			};
-		}
-		
-		if( (flags >> 0) & 1)
-		{
-			if(!passNoRunsOf3Col(boardPtr, y))
-			{
-				//printf("run of 3 on col\n");
-				return 0;
-			}
-		}
-	}
-	*/
-	return 1;
+	//Since a flag bit being set to 1 means to care about the test
+	//And a flag bit of 0 means ignore.
+	//We can flip the flag bits and OR them to force the
+	//Bits which we dont care about to 1, as if they passed
+	return (results | (~flags & 0b1111111)) == 0b1111111;
 }

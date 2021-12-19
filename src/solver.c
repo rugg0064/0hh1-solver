@@ -1,66 +1,8 @@
 #include "solver.h"
 
-Board solve(Board board)
-{
-	//printf("Recursed\n");
-	//printBoard(&board);
-	//printf("\n");
-	if(!isBoardValid(&board, 0b0111111))
-	{
-		//printf("Invalid, skipping");
-		return board;
-	}
-	if(isBoardFull(&board))
-	{
-		//printf("asd\n");
-		return board;
-	}
-	int changed = 1;
-	while(changed)
-	{
-		changed = fixSandwiches(&board);
-		changed |= fixRunsOfTwo(&board);
-		changed |= fix2n(&board);
-		//printBoard(&board);
-		//printf("\n");
-	}
-	//Since we are returning a board object, we cant return NULL or something
-	//to tell people that our solution was invalid, so we have to check that
-	//after returning.
-	int n = board.size;
-	for(int y = 0; y < n; y++)
-	{
-		for(int x = 0; x < n; x++)
-		{
-			Board newBoard = board; //Make a copy of the current board
-			if(isSlotEmpty(&newBoard, x, y))
-			{
-				setColor(&newBoard, x, y, 0b10);
-				//if(canInsert(&newBoard, x, y, 0))
-				{
-					newBoard = solve(newBoard);
-					if(isBoardValid(&newBoard, 0b1111111))
-					{
-						return newBoard;
-					}
-				}
-				//if(canInsert(&newBoard, x, y, 1))
-				{
-					setColor(&newBoard, x, y, 0b11);
-					newBoard = solve(newBoard);
-					if(isBoardValid(&newBoard, 0b1111111))
-					{
-						return newBoard;
-					}
-				}
-				
-			}
-		}
-	}
-	return board;
-}
+#include "constraints.h"
 
-
+/*
 int fixSandwiches(Board *boardPtr)
 { //A sandwich is a case where it is X_X (both X are the same color)
   //Due to the run of 3 rule, the center must be the opposite value.
@@ -174,6 +116,7 @@ int fixRunsOfTwo(Board *boardPtr)
 	return changed;
 }
 
+
 int fix2n(Board *boardPtr)
 {
 	int changed = 0;
@@ -236,4 +179,121 @@ int fix2n(Board *boardPtr)
 		}
 	}
 	return changed;
+}
+*/
+
+void fixLine(Board *boardPtr, uint8 isCol, uint8 lineNum)
+{
+	uint8 n = boardPtr->size;
+	uint8 redCount;
+	uint8 blueCount;
+	
+	/* Find the red and blue count on the line */
+	uint8 limit = n/2;
+	uint8 redCount = 0;
+	uint8 blueCount = 0;
+	for(int i = 0; i < n; i++)
+	{	
+		uint8 isEmpty = isCol ? isSlotEmpty(boardPtr, lineNum, i) : isSlotEmpty(boardPtr, i, lineNum);
+		if(!isEmpty)
+		{
+			uint8 value = isCol ? getColor(boardPtr, lineNum, i) : getColor(boardPtr, i, lineNum);
+			redCount  += value ^ 1; //Value will return either 0/1 for red/blue
+			//If the result was 0, then it was red, so if we flip the bit and add, we will add if it was red.
+			blueCount += value;
+		}
+	}
+	uint8 shouldFill = 0;
+	uint8 fillColor = 0;
+	if(redCount == limit)
+	{
+		shouldFill = 1;
+		fillColor = 0;
+	}
+	else if(redCount == limit)
+	{
+		shouldFill = 1;
+		fillColor = 0;
+	}
+	if(shouldFill)
+	{
+		for(int i = 0; i < n; i++)
+		{
+			if(isCol)
+			{
+				setFilled(boardPtr, lineNum, i, 1);
+				setColor(boardPtr, lineNum, i, fillColor);
+			}
+			else
+			{
+				setFilled(boardPtr, i, lineNum, 1);
+				setColor(boardPtr, i, lineNum, fillColor);
+			}
+			//Store all positions that got changed in some data structure
+			//Then at the end of fixing all the things
+			//recurse onto each spot.
+		}
+	}
+}
+
+Board solve(Board board)
+{
+	//printf("Recursed\n");
+	//printBoard(&board);
+	//printf("\n");
+	if(!isBoardValid(&board, 0b0111111))
+	{
+		printf("Invalid, skipping");
+		return board;
+	}
+	if(isBoardFull(&board))
+	{
+		//printf("asd\n");
+		return board;
+	}
+	int changed = 1;
+	while(changed)
+	{
+		changed = 0;
+		//changed = fixSandwiches(&board);
+		//changed |= fixRunsOfTwo(&board);
+		//changed |= fix2n(&board);
+		printBoard(&board);
+		//printf("\n");
+	}
+	return board;
+	//Since we are returning a board object, we cant return NULL or something
+	//to tell people that our solution was invalid, so we have to check that
+	//after returning.
+	int n = board.size;
+	for(int y = 0; y < n; y++)
+	{
+		for(int x = 0; x < n; x++)
+		{
+			Board newBoard = board; //Make a copy of the current board
+			if(isSlotEmpty(&newBoard, x, y))
+			{
+				setColor(&newBoard, x, y, 0b10);
+				//if(canInsert(&newBoard, x, y, 0))
+				{
+					newBoard = solve(newBoard);
+					if(isBoardValid(&newBoard, 0b1111111))
+					{
+						return newBoard;
+					}
+				}
+				//if(canInsert(&newBoard, x, y, 1))
+				{
+					setColor(&newBoard, x, y, 0b11);
+					newBoard = solve(newBoard);
+					if(isBoardValid(&newBoard, 0b1111111))
+					{
+						return newBoard;
+					}
+				}
+				
+			}
+		}
+	}
+	return board;
 }
